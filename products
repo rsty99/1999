@@ -1,0 +1,21 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getProducts, saveProducts } from "@/server/db";
+import { requireAdmin } from "@/server/admin";
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await req.json();
+  const products = getProducts();
+  const p = products.find(x=>x.id===params.id);
+  if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  Object.assign(p, { name: body.name ?? p.name, slug: body.slug ?? p.slug, price: Number(body.price ?? p.price), stock: Number(body.stock ?? p.stock), image: body.image ?? p.image });
+  saveProducts(products);
+  return NextResponse.json(p);
+}
+
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await requireAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const products = getProducts().filter(x=>x.id!==params.id);
+  saveProducts(products);
+  return NextResponse.json({ ok: true });
+}
